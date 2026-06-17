@@ -27,8 +27,20 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
+      - name: Add Android platform if not present
+        run: |
+          if [ ! -d "android" ]; then
+            echo "android folder not found, adding it via Capacitor..."
+            npx cap add android
+          else
+            echo "android folder exists, skipping cap add"
+          fi
+
       - name: Capacitor sync
         run: npx cap sync android
+
+      - name: Fix gradlew permissions
+        run: chmod +x android/gradlew
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -37,9 +49,6 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-
-      - name: Fix gradlew permissions
-        run: chmod +x android/gradlew
 
       - name: Build debug APK
         working-directory: android
