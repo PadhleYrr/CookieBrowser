@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Android generated files (keep src, ignore build output)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# Capacitor generated - DO NOT ignore android/ itself
+# gradlew and gradle wrapper are needed for CI
+*.iml
+.idea/
+
+# npm
+npm-debug.log*
+package-lock.json
