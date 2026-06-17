@@ -29,11 +29,11 @@ jobs:
 
       - name: Add Android platform if not present
         run: |
-          if [ ! -d "android" ]; then
-            echo "android folder not found, adding it via Capacitor..."
+          if [ ! -f "android/gradlew" ]; then
+            echo "gradlew not found, running cap add android..."
             npx cap add android
           else
-            echo "android folder exists, skipping cap add"
+            echo "android platform already set up"
           fi
 
       - name: Capacitor sync
