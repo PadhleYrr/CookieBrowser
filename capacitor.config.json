@@ -13,10 +13,5 @@
     "CapacitorHttp": {
       "enabled": true
     }
-  },
-  "server": {
-    "androidScheme": "https",
-    "cleartext": true,
-    "allowNavigation": ["*"]
   }
 }
