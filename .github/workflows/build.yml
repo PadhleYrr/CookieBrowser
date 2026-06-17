@@ -30,7 +30,7 @@ jobs:
 
       # ── 4. Install Capacitor deps ─────────────────────────────────
       - name: Install npm dependencies
-        run: npm install
+        run: npm install --no-package-lock
 
       # ── 5. Capacitor sync (copies web → android/app/src/main/assets) ─
       - name: Capacitor sync
