@@ -27,11 +27,17 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
-      - name: Add Android platform if not present
+      - name: Add Android platform
         run: |
           if [ ! -f "android/gradlew" ]; then
-            echo "gradlew not found, running cap add android..."
+            echo "gradlew not found, regenerating android platform..."
+            mkdir -p /tmp/android-backup
+            cp android/app/src/main/java/com/cookiegrabber/app/CookieBridge.java /tmp/android-backup/
+            cp android/app/src/main/java/com/cookiegrabber/app/MainActivity.java /tmp/android-backup/
+            rm -rf android
             npx cap add android
+            cp /tmp/android-backup/CookieBridge.java android/app/src/main/java/com/cookiegrabber/app/
+            cp /tmp/android-backup/MainActivity.java android/app/src/main/java/com/cookiegrabber/app/
           else
             echo "android platform already set up"
           fi
