@@ -31,15 +31,18 @@ jobs:
         run: |
           if [ ! -f "android/gradlew" ]; then
             echo "gradlew not found, regenerating android platform..."
-            mkdir -p /tmp/android-backup
-            cp android/app/src/main/java/com/cookiegrabber/app/CookieBridge.java /tmp/android-backup/
-            cp android/app/src/main/java/com/cookiegrabber/app/MainActivity.java /tmp/android-backup/
+            # Back up custom Java files
+            mkdir -p /tmp/android-backup/com/cookiegrabber/app
+            cp android/app/src/main/java/com/cookiegrabber/app/CookieBridge.java /tmp/android-backup/com/cookiegrabber/app/
+            cp android/app/src/main/java/com/cookiegrabber/app/MainActivity.java /tmp/android-backup/com/cookiegrabber/app/
+            # Remove partial folder and regenerate cleanly
             rm -rf android
             npx cap add android
-            cp /tmp/android-backup/CookieBridge.java android/app/src/main/java/com/cookiegrabber/app/
-            cp /tmp/android-backup/MainActivity.java android/app/src/main/java/com/cookiegrabber/app/
+            # Restore custom files
+            cp /tmp/android-backup/com/cookiegrabber/app/CookieBridge.java android/app/src/main/java/com/cookiegrabber/app/
+            cp /tmp/android-backup/com/cookiegrabber/app/MainActivity.java android/app/src/main/java/com/cookiegrabber/app/
           else
-            echo "android platform already set up"
+            echo "android platform already set up, skipping cap add"
           fi
 
       - name: Capacitor sync
@@ -54,7 +57,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
       - name: Build debug APK
         working-directory: android
