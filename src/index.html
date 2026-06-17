@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Cookie Grabber</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --border: #222;
+      --accent: #00ff88;
+      --accent2: #ff3366;
+      --text: #e8e8e8;
+      --muted: #555;
+      --bar-h: 52px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── TOP BAR ── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: var(--bar-h);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    #url-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #url-input:focus { border-color: var(--accent); }
+
+    .bar-btn {
+      background: var(--border);
+      border: none;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 18px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .bar-btn:active { background: #333; }
+
+    #go-btn {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      width: auto;
+      padding: 0 14px;
+      font-family: 'Syne', sans-serif;
+    }
+    #go-btn:active { background: #00cc6a; }
+
+    /* ── WEBVIEW FRAME ── */
+    #webview-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #site-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+
+    /* ── LOADING BAR ── */
+    #loadbar {
+      position: absolute;
+      top: 0; left: 0;
+      height: 2px;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+      z-index: 5;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* ── COOKIE FAB ── */
+    #cookie-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 18px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    #grab-btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 24px rgba(0,255,136,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    #grab-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 12px rgba(0,255,136,0.2);
+    }
+    #grab-btn .icon { font-size: 18px; }
+
+    /* ── COOKIE MODAL ── */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-height: 80dvh;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    #modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #modal-title {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    #modal-domain {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    #close-btn {
+      background: var(--border);
+      border: none;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 18px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .action-btn:active { transform: scale(0.97); }
+
+    #copy-all-btn {
+      background: var(--accent);
+      color: #000;
+    }
+
+    #copy-json-btn {
+      background: #1a1a2e;
+      color: #7b8cff;
+      border: 1px solid #7b8cff44;
+    }
+
+    #cookie-list {
+      overflow-y: auto;
+      flex: 1;
+      padding: 12px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cookie-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+    .cookie-item:active { border-color: var(--accent); }
+
+    .cookie-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .cookie-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+      max-height: 36px;
+      overflow: hidden;
+    }
+
+    .cookie-tap-hint {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: #000;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 100px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 30px;
+      display: none;
+    }
+    #empty-state.show { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP NAV BAR -->
+  <div id="topbar">
+    <button class="bar-btn" id="back-btn" title="Back">‹</button>
+    <button class="bar-btn" id="fwd-btn" title="Forward">›</button>
+    <input id="url-input" type="url" placeholder="https://example.com" inputmode="url" />
+    <button class="bar-btn go-btn" id="go-btn">Go</button>
+    <button class="bar-btn" id="reload-btn" title="Reload">↺</button>
+  </div>
+
+  <!-- WEBVIEW AREA -->
+  <div id="webview-wrap">
+    <div id="loadbar"></div>
+    <iframe id="site-frame" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"></iframe>
+  </div>
+
+  <!-- FLOATING COOKIE BUTTON -->
+  <div id="cookie-fab">
+    <button id="grab-btn">
+      <span class="icon">🍪</span> Get Cookies
+    </button>
+  </div>
+
+  <!-- COOKIE MODAL -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <div id="modal-header">
+        <div>
+          <div id="modal-title">🍪 Cookies</div>
+          <div id="modal-domain"></div>
+        </div>
+        <button id="close-btn">✕</button>
+      </div>
+      <div id="modal-actions">
+        <button class="action-btn" id="copy-all-btn">⎘ Copy All (name=value)</button>
+        <button class="action-btn" id="copy-json-btn">{ } JSON</button>
+      </div>
+      <div id="cookie-list"></div>
+      <div id="empty-state">No cookies found for this page</div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <script>
+    const frame       = document.getElementById('site-frame');
+    const urlInput    = document.getElementById('url-input');
+    const loadbar     = document.getElementById('loadbar');
+    const modalOverlay= document.getElementById('modal-overlay');
+    const cookieList  = document.getElementById('cookie-list');
+    const modalDomain = document.getElementById('modal-domain');
+    const emptyState  = document.getElementById('empty-state');
+
+    let currentCookies = [];
+
+    // ── URL NAVIGATION ──
+    function navigate(url) {
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      urlInput.value = url;
+      startLoad();
+      frame.src = url;
+    }
+
+    document.getElementById('go-btn').onclick = () => navigate(urlInput.value.trim());
+    urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') navigate(urlInput.value.trim()); });
+    document.getElementById('back-btn').onclick = () => history.back();
+    document.getElementById('fwd-btn').onclick  = () => history.forward();
+    document.getElementById('reload-btn').onclick = () => { startLoad(); frame.src = frame.src; };
+
+    frame.onload = () => {
+      stopLoad();
+      try { urlInput.value = frame.contentWindow.location.href; } catch(e) {}
+    };
+
+    function startLoad() {
+      loadbar.style.width = '70%';
+    }
+    function stopLoad() {
+      loadbar.style.width = '100%';
+      setTimeout(() => { loadbar.style.width = '0%'; }, 400);
+    }
+
+    // ── COOKIE GRABBING ──
+    // Capacitor exposes native CookieManager via window.Capacitor
+    // Falls back to document.cookie for same-origin frames
+    async function grabCookies() {
+      currentCookies = [];
+      let domain = '';
+
+      try { domain = new URL(frame.src).hostname; } catch(e) {}
+
+      // 1. Try Capacitor native plugin (works cross-origin)
+      if (window.Capacitor?.Plugins?.CapacitorCookies) {
+        try {
+          const res = await window.Capacitor.Plugins.CapacitorCookies.getCookies({ url: frame.src });
+          const raw = res.value || {};
+          currentCookies = Object.entries(raw).map(([name, value]) => ({ name, value }));
+        } catch(e) { console.warn('Capacitor cookies failed:', e); }
+      }
+
+      // 2. Try Android CookieManager bridge (injected by native side)
+      if (currentCookies.length === 0 && window.AndroidCookies) {
+        try {
+          const raw = window.AndroidCookies.getCookies(frame.src);
+          if (raw) {
+            currentCookies = raw.split(';').map(p => {
+              const [name, ...rest] = p.trim().split('=');
+              return { name: name.trim(), value: rest.join('=').trim() };
+            }).filter(c => c.name);
+          }
+        } catch(e) { console.warn('AndroidCookies bridge failed:', e); }
+      }
+
+      // 3. Fallback: inject script into same-origin iframe
+      if (currentCookies.length === 0) {
+        try {
+          const raw = frame.contentDocument?.cookie || document.cookie;
+          if (raw) {
+            currentCookies = raw.split(';').map(p => {
+              const [name, ...rest] = p.trim().split('=');
+              return { name: name.trim(), value: rest.join('=').trim() };
+            }).filter(c => c.name);
+          }
+        } catch(e) { /* cross-origin blocked */ }
+      }
+
+      return { cookies: currentCookies, domain };
+    }
+
+    // ── MODAL ──
+    document.getElementById('grab-btn').onclick = async () => {
+      const { cookies, domain } = await grabCookies();
+      modalDomain.textContent = domain || frame.src;
+      cookieList.innerHTML = '';
+
+      if (cookies.length === 0) {
+        emptyState.classList.add('show');
+      } else {
+        emptyState.classList.remove('show');
+        cookies.forEach(({ name, value }) => {
+          const item = document.createElement('div');
+          item.className = 'cookie-item';
+          item.innerHTML = `
+            <div class="cookie-name">${escHtml(name)}</div>
+            <div class="cookie-val">${escHtml(value) || '<em style="color:#444">empty</em>'}</div>
+            <span class="cookie-tap-hint">tap to copy</span>
+          `;
+          item.onclick = () => copyText(`${name}=${value}`, `${name} copied!`);
+          cookieList.appendChild(item);
+        });
+      }
+
+      modalOverlay.classList.add('open');
+    };
+
+    document.getElementById('close-btn').onclick  = () => modalOverlay.classList.remove('open');
+    modalOverlay.onclick = e => { if (e.target === modalOverlay) modalOverlay.classList.remove('open'); };
+
+    document.getElementById('copy-all-btn').onclick = () => {
+      const text = currentCookies.map(c => `${c.name}=${c.value}`).join('; ');
+      copyText(text, `${currentCookies.length} cookies copied!`);
+    };
+
+    document.getElementById('copy-json-btn').onclick = () => {
+      const obj = Object.fromEntries(currentCookies.map(c => [c.name, c.value]));
+      copyText(JSON.stringify(obj, null, 2), 'JSON copied!');
+    };
+
+    // ── UTILS ──
+    function copyText(text, msg = 'Copied!') {
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(() => toast(msg)).catch(() => fallbackCopy(text, msg));
+      } else {
+        fallbackCopy(text, msg);
+      }
+    }
+
+    function fallbackCopy(text, msg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand('copy'); toast(msg); } catch(e) { toast('Copy failed'); }
+      document.body.removeChild(ta);
+    }
+
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Load default on start
+    navigate('https://google.com');
+  </script>
+</body>
+</html>
